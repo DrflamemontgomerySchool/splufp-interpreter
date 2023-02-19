@@ -14,11 +14,11 @@ functions return the last statement \
 - [x] String
 - [x] Number (floats and integers are the same)
 - [x] Array
-- [x] Function
+- [ ] Function
 - [ ] JS Function (Allows a javascript function to be used in splufp)
 - [ ] Object (denoted by {})
 - [ ] Macro
-- [x] Lambda
+- [ ] Lambda
 
 ### Data Type Examples
 
