@@ -33,9 +33,9 @@ let this_is_a_number = 9
 let this_is_a_number = -1.0
 let this_is_a_number = 576.12371
 let this_is_a_array = [1, 2, 3, 4, 5]
-this_is_a_function a b c = a + b + c
+this_is_a_function a b c { a + b + c }
 externjs this_is_a_js_function a b
-let this_is_a_object = { "1" : 2, 123 : 11 }
+let this_is_a_object = { a : 2, b : 11 }
 let this_is_a_lambda = \(x, y\) -> x + y
 ```
 
@@ -47,9 +47,9 @@ let this_is_a_lambda = \(x, y\) -> x + y
 variable_name = 4
 
 -- Functions are similar but have an arguments list
-function_name arg1 arg2 = arg1 + arg2
+function_name arg1 arg2 { add arg1 arg2 }
 
--- Functions are variables are constant by default but can be modifiable
+-- Variables can be constant or modifiable
 set var_or_func = 12
 var_of_func = 10
 
@@ -60,23 +60,27 @@ const_var = 12 -- Tries to reassign value to 'const_var' but this throws a runti
 externjs js_function a b
 
 -- Macros are useful for generating code and are simple to create
-macro macro_function a b = a + b
+macro macro_function a b = add a b
 
-test_func a =
+test_func a {
   macro_function a 7
+}
 -- generated code
--- test_func a =
---   a + 7
+-- test_func a = {
+--   add a 7
+-- }
 
 -- Macros can also parse non-data-types
 macro adder_macro name value =
-  ##name##_##value## a = \
-    a + value
+  ##name##_##value## a {\
+    a + value\
+}
 
 adder_macro func_that_adds 4
 -- generated code
--- func_that_adds_4 a =
+-- func_that_adds_4 a = {
 --   a + 4
+-- }
 ```
 
 ## Currying
@@ -98,7 +102,7 @@ Input:
 let variable = 5
 
 func a b c d = {
-  a + b + c + d
+  add a b c d
 }
   
 main {
@@ -114,19 +118,23 @@ Ouput:
 
 var __spl__variable = function() { return 5; }
 
-var __spl__func = function(__spl__func__a) {
-  return function(__spl__func__b) {
-    return function(__spl__func__c) {
-      return function(__spl__func__d) {
-        return __spl__func__a + __spl__func__b + __spl__func__c + __spl__func__d;
+var __spl__func = function() {
+  function(__spl__func__a) {
+    return function(__spl__func__b) {
+      return function(__spl__func__c) {
+        return function(__spl__func__d) {
+          return __spl__func__add()(__spl__func__a, __spl__func__b, __spl__func__c, __spl__func__d);
+        }
       }
     }
   }
 }
 
 var __spl__main = function() {
-  var __spl__b = __spl__func(1)(2)(3);
-  console.log(__spl__b(1));
+  var __spl__b = function() {
+    return __spl__func()(1)(2)(3);
+  }
+  console.log(__spl__b()(1));
 }
 
 ```
