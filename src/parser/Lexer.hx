@@ -1,12 +1,19 @@
 package parser;
 
+enum FuncType {
+  ConstantVariable;
+  NonConstantVariable;
+  Function;
+}
+
 enum LexExpr {
   LexNull;
   LexBool(val:Bool);
   LexNumber(val:Float);
+  LexString(val:String);
   LexArray(val:Array<LexExpr>);
   LexObject(val:Map<String, LexExpr>);
-  LexFunction(isConst:Bool, name:String, args:Array<String>, body:Array<LexExpr>); // also variable
+  LexFunction(type:FuncType, name:String, args:Array<String>, body:Array<LexExpr>); // also variable
   LexCall(name:String, args:Array<String>);
   LexAssignment(name:String, val:LexExpr);
 }
@@ -28,6 +35,13 @@ class Lexer {
   ]).concat([
     '_'.code
   ]);
+
+  final numberStart : Array<Int> = [
+    for(i in '0'.code...'9'.code) i
+  ].concat([
+      '-'.code, '.'.code
+  ]);
+
 
   function new(str:String) {
     this.str = str;
@@ -51,11 +65,6 @@ class Lexer {
 
   function parseTopLevel() : Null<LexExpr> {
 
-    final numberStart : Array<Int> = [
-      for(i in '0'.code...'9'.code) i
-    ].concat([
-        '-'.code, '.'.code
-    ]);
 
     var c : Int;
     while( !StringTools.isEof( (c = nextChar()) ) ) {
@@ -63,15 +72,15 @@ class Lexer {
       switch(c) {
         case c if(whitespace.contains(c)):
           // loop
+        case '/'.code:
+          stripComment();
         case c if( variableNameStart.contains(c) ):
 
           switch(getVariableName(c)) {
             case 'let':
-              trace('constant');
-              return parseVariableCreation(true);
+              return parseVariableCreation(ConstantVariable);
             case 'set':
-              trace('non-constant');
-              return parseVariableCreation(false);
+              return parseVariableCreation(NonConstantVariable);
             case 'externjs':
               throw 'external javascript functions are not implemented';
             case 'macro':
@@ -80,18 +89,181 @@ class Lexer {
               throw 'functions are not implemented';
           }
         case c:
-          throw 'invalid top level expression \'$c\' at pos: $pos';
+          throw 'invalid top level expression \'${ toChar(c) }\' at pos: $pos';
       }
     }
     return null;
   }
 
-  function parseVariableCreation(isConstant : Bool) : LexExpr {
-    return LexFunction(isConstant, "", [], []);
+  function parseVariableCreation(type : FuncType) : LexExpr {
+    switch(lastChar) {
+      case ' '.code, '\t'.code:
+      case str if( type == ConstantVariable ):
+        'expected whitespace after \'let\', received \'$str\' instead';
+      case str if( type == NonConstantVariable ):
+        'expected whitespace after \'set\', received \'$str\' instead';
+      case str:
+        'variable type invalid';
+    }
+
+    switch(parseVariableAssignment() ) {
+      case LexAssignment(name, val):
+        return LexFunction(type, name, [], [val]);
+      default:
+        throw 'expected variable assignment';
+    }
   }
 
-  function getNumberValue(start_char:Int):Float {
-    var num_string = String.fromCharCode(start_char);
+  function parseVariableAssignment() : LexExpr {
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case ' '.code, '\t'.code:
+          // loop
+        case '/'.code:
+          stripComment();
+        case c if( variableNameStart.contains(c) ):
+          return LexAssignment(getVariableName(c), parseVariableCreationBody());
+
+          // variable Name
+        case str:
+          throw 'expected variable name, received \'$str\' instead';
+      }
+    }
+    
+    throw 'expected variable expression but reached EOF';
+  }
+
+  function parseVariableCreationBody() : LexExpr {
+    do {
+      switch(lastChar) {
+        case '/'.code:
+          stripComment();
+        case ' '.code, '\t'.code:
+          // loop
+        case '='.code:
+
+          return parseVariableAssignmentExpr();
+        case c:
+          throw 'expected \'=\' after variable name, got \'${ toChar(c) }';
+      }
+    } while( !StringTools.isEof( (lastChar = nextChar()) ) );
+
+    throw 'expected variable expression but reached EOF';
+  }
+
+  function parseVariableAssignmentExpr() : LexExpr {
+
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case '/'.code:
+          stripComment();
+        case ' '.code, '\t'.code:
+          // loop
+        case n if (numberStart.contains(n)):
+          return LexNumber(parseNumberValue(n));
+        case '{'.code:
+          throw 'objects are not implemented';
+        case '\\'.code:
+          throw 'lambdas are not implemented';
+        case '('.code:
+          throw 'bracket expressions are not implemented';
+        case '['.code:
+          return LexArray(parseArrayValue());
+          //throw 'arrays are not implemented';
+        case "'".code, '"'.code:
+          return LexString(parseString());
+
+        case c if (variableNameStart.contains(c)):
+          switch(getVariableName(c)) {
+            case 'true':
+              return LexBool(true);
+            case 'false':
+              return LexBool(false);
+            case 'null':
+              return LexNull;
+            case str:
+              return LexCall(str, []);
+              //throw 'variable references not implemented';
+          }
+
+        case c:
+          invalidChar();
+      }
+    }
+    
+    throw 'expected variable expression but reached EOF';
+  }
+  
+  function parseArrayValue() : Array<LexExpr> {
+    var expressions : Array<LexExpr> = [];
+    
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+          // loop
+        case ']'.code:
+          return expressions;
+        default:
+          pos--;
+          break;
+      }
+    }
+
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+          // loop
+        case '/'.code:
+          stripComment();
+        case n if (numberStart.contains(n)):
+          expressions.push( LexNumber(parseNumberValue(n)) );
+        case '{'.code:
+          throw 'objects are not implemented';
+        case '\\'.code:
+          throw 'lambdas are not implemented';
+        case '('.code:
+          throw 'bracket expressions are not implemented';
+        case '['.code:
+          expressions.push( LexArray(parseArrayValue()) );
+          lastChar = nextChar();
+          //throw 'arrays are not implemented';
+        case "'".code, '"'.code:
+          expressions.push(LexString(parseString()));
+
+        case c if (variableNameStart.contains(c)):
+          switch(getVariableName(c)) {
+            case 'true':
+              expressions.push( LexBool(true) );
+            case 'false':
+              expressions.push( LexBool(false) );
+            case 'null':
+              expressions.push( LexNull );
+            case str:
+              expressions.push( LexCall(str, []) );
+              //throw 'variable references not implemented';
+          }
+      }
+
+      do {
+        switch(lastChar) {
+          case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+            // loop
+          case ','.code:
+            break;
+          case ']'.code:
+            return expressions;
+          default:
+            pos--;
+            break;
+        }
+      } while( !StringTools.isEof( (lastChar = nextChar()) ) );
+
+    }
+   throw 'expected array expression but reached EOF'; 
+  }
+
+  function parseNumberValue(start_char:Int):Float {
+    var num_string = toChar(start_char);
 
     final numberValues : Array<Int> = [
       for(i in '0'.code...'9'.code) i
@@ -103,8 +275,10 @@ class Lexer {
       var c = nextChar();
       lastChar = c;
       switch(c) {
+        case '/'.code:
+          stripComment();
         case n if ( numberValues.contains(n) ):
-          num_string += String.fromCharCode(n);
+          num_string += toChar(n);
         default:
           switch(Std.parseFloat(num_string)) {
             case num if ( Math.isNaN(num) ):
@@ -128,13 +302,13 @@ class Lexer {
     ]).concat([
       '_'.code
     ]);
-    var name : String = String.fromCharCode(start_char);
+    var name : String = toChar(start_char);
     while(true) {
       var c = nextChar();
       lastChar = c;
       switch(c) {
         case _ if(variableNameMatch.contains(c)):
-          name += String.fromCharCode(c);
+          name += toChar(c);
         default:
           return name;
 
@@ -143,7 +317,92 @@ class Lexer {
     return name;
   }
 
+  function parseString() : String {
+    var string = "";
+    final stringId = lastChar;
+
+    while( !StringTools.isEof( (lastChar = nextChar()) )) {
+      switch(lastChar) {
+        case '\\'.code:
+          string += String.fromCharCode(parseEscape()); 
+        case c if(c == stringId):
+          return string;
+        case c:
+          string += String.fromCharCode(c);
+      }
+    }
+    return null;
+  }
+
+  inline function parseEscape() : Int {
+    switch( (lastChar = nextChar()) ) {
+      case 'a'.code:
+        return 0x07;
+      case 'b'.code:
+        return 0x08;
+      case 'e'.code:
+        return 0x1b;
+      case 'f'.code:
+        return 0x0c; 
+      case 'n'.code:
+        return '\n'.code;
+      case 'r'.code:
+        return '\r'.code;
+      case 't'.code:
+        return '\t'.code;
+      case 'v'.code:
+        return 0x0b;
+      case 'x'.code:
+        return Std.parseInt('0x${ toChar(nextChar()) }${ toChar( (lastChar = nextChar()) ) }');
+      case c:
+        return c;
+    }
+  }
+
+  function stripLineComment() : Void {
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case '\n'.code:
+          return;
+      }
+    }
+  }
+
+  function stripMultilineComment() : Void {
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case '*'.code:
+          switch((lastChar = nextChar())) {
+            case '/'.code:
+              return;
+          }
+      }
+    }
+
+    throw 'expected \'*/\' to end multi-line comment but encountered EOF';
+  }
+
+  function stripComment() : Void {
+    switch( (lastChar = nextChar()) ) {
+      case '/'.code:
+        stripLineComment();
+      case '*'.code:
+        stripMultilineComment();
+      case c:
+        throw 'expected \'/\' or \'*\' for comment';
+    }
+  }
+
+  inline function toChar(code:Int) : String {
+    return String.fromCharCode(code);
+  }
+
   inline function nextChar():Int {
     return StringTools.fastCodeAt(str, pos++);
+  }
+
+  function invalidChar() {
+    pos--;
+    throw 'invalid char \'${ toChar(StringTools.fastCodeAt(str, pos)) }\' at position $pos';
   }
 }
