@@ -14,7 +14,7 @@ class Main {
     return '';
   }
 
-  static function exprToString(expr:LexExpr) : String {
+  public static function exprToString(expr:LexExpr) : String {
     switch(expr) {
       case LexNull:
         return 'null';
@@ -32,6 +32,10 @@ class Main {
         var str = [ for(i in arr) exprToString(i) ];
         return '$str';
 
+      case LexObject(map):
+        var str = [ for(i in map.keys()) '$i : ${exprToString(map[i])}' ];
+        return '$str';
+
       case LexCall(name, args):
         return '$name $args';
 
@@ -42,7 +46,7 @@ class Main {
           case NonConstantVariable:
             return 'set $name = ${ (body.length == 0 ? 'void' : exprToString(body[0]) ) }';
           case Function:
-            return 'Function not implemented';
+            return 'function $name ${['\n'].concat([ for(i in body) '\x08  ' + exprToString(i) + '\n'])}';
         }
 
       default:
@@ -54,9 +58,13 @@ class Main {
     final test_string = "
 let one = -12.32\n
 set two = true\n
-let a = [[123, 234], []]
+let a = [null, true, false, 1, -1, .01, -.01, '123\t123', [1, 2, 3] ]
 let b = 'test'
-//let a = { a : 1.12 }
+let a = { a : 1.12, b:'123', c : { a : 123, b : true } }
+func_name a b c {
+  123
+  let a = 2
+}
 //let b = 123
 ";
 
