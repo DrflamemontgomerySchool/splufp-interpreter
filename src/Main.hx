@@ -37,7 +37,10 @@ class Main {
         return '$str';
 
       case LexCall(name, args):
-        return '$name $args';
+        return '$name ${[for(i in args) exprToString(i)]}';
+
+      case LexExternJS(name, args):
+        return 'externjs ${name} ${args}';
 
       case LexFunction(type, name, args, body):
         switch(type) {
@@ -46,8 +49,10 @@ class Main {
           case NonConstantVariable:
             return 'set $name = ${ (body.length == 0 ? 'void' : exprToString(body[0]) ) }';
           case Function:
-            return 'function $name ${['\n'].concat([ for(i in body) '\x08  ' + exprToString(i) + '\n'])}';
+            return 'function $name $args ${['\n'].concat([ for(i in body) '\x08  ' + exprToString(i) + '\n'])}';
         }
+      case LexLambda(args, body):
+        return 'lambda $args ${['\n'].concat([ for(i in body) '\x08  ' + exprToString(i) + '\n'])}';
 
       default:
         return 'Undefined';
@@ -59,15 +64,27 @@ class Main {
 let one = -12.32\n
 set two = true\n
 let a = [null, true, false, 1, -1, .01, -.01, '123\t123', [1, 2, 3] ]
-let b = 'test'
-let a = { a : 1.12, b:'123', c : { a : 123, b : true } }
+let b = one\n
+let c = { a : 1.12, b:'123', c : { a : 123, b : true } }
+let d = func_name 1 2 3
 func_name a b c {
+  (a (add 1 2 (neg 3)))
+  add 1
+  2
+  '123'
   123
-  let a = 2
+  let a = \\(a b c\\) {
+  }
 }
-//let b = 123
+
+externjs test_js a b c
 ";
 
-    Lambda.map(parser.Lexer.parse(test_string + '\n'), printExpr);
+    //Lambda.map(parser.Lexer.parse(test_string + '\n'), printExpr);
+#if js
+  js.Browser.console.log(Transpiler.getJavascriptHeader() + Transpiler.transpile(parser.Lexer.parse(test_string + '\n')));
+#else
+  Std.printLn(Transpiler.transpile(parser.Lexer.parse(test_string + '\n')));
+#end
   }
 }
