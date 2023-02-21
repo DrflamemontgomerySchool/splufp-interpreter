@@ -14,8 +14,10 @@ enum LexExpr {
   LexArray(val:Array<LexExpr>);
   LexObject(val:Map<String, LexExpr>);
   LexFunction(type:FuncType, name:String, args:Array<String>, body:Array<LexExpr>); // also variable
-  LexCall(name:String, args:Array<String>);
+  LexLambda(args:Array<String>, body:Array<LexExpr>);
+  LexCall(name:String, args:Array<LexExpr>);
   LexAssignment(name:String, val:LexExpr);
+  LexExternJS(name:String, args:Array<String>);
 }
 
 class Lexer {
@@ -82,17 +84,32 @@ class Lexer {
             case 'set':
               return parseVariableCreation(NonConstantVariable);
             case 'externjs':
-              throw 'external javascript functions are not implemented';
+              return parseExternJS();
+              //throw 'external javascript functions are not implemented';
             case 'macro':
               throw 'macros are not implemented';
-            case str:
-             return  parseFunction(str);
+            case name:
+              return LexFunction(Function, name, parseFunctionArgs(), parseFunctionBody());
           }
         case c:
           throw 'invalid top level expression \'${ toChar(c) }\' at pos: $pos';
       }
     }
     return null;
+  }
+
+  function parseExternJS() : LexExpr {
+      
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case ' '.code, '\t'.code:
+          // loop
+        case c if(variableNameStart.contains(c)):
+          return LexExternJS(getVariableName(c), parseFunctionArgs());
+      }
+    }
+
+    throw 'expected externjs expression but reached EOF';
   }
 
   function parseVariableCreation(type : FuncType) : LexExpr {
@@ -164,9 +181,9 @@ class Lexer {
         case '{'.code:
           return LexObject(parseObject());
         case '\\'.code:
-          throw 'lambdas are not implemented';
+          return parseLambda();
         case '('.code:
-          throw 'bracket expressions are not implemented';
+          return parseBracket();
         case '['.code:
           return LexArray(parseArray());
           //throw 'arrays are not implemented';
@@ -182,18 +199,127 @@ class Lexer {
             case 'null':
               return LexNull;
             case str:
-              return LexCall(str, []);
+              return LexCall(str, parseCallArgs());
+              //throw 'variable references not implemented';
+          }
+
+        case c:
+          throw 'expected expression but got \'${toChar(c)}\'';
+      }
+    }
+    
+    throw 'expected variable expression but reached EOF';
+  }
+
+  function parseCallArgs() : Array<LexExpr> {
+    var args : Array<LexExpr> = [];
+
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case '/'.code:
+          stripComment();
+          continue;
+        case ' '.code, '\t'.code:
+          // loop
+          continue;
+        case n if (numberStart.contains(n)):
+          args.push( LexNumber(parseNumberValue(n)) );
+        case '{'.code:
+          args.push( LexObject(parseObject()) );
+          lastChar = nextChar();
+        case '\\'.code:
+          args.push( parseLambda() );
+          lastChar = nextChar();
+        case '('.code:
+          args.push(parseBracket());
+          lastChar = nextChar();
+        case '['.code:
+          args.push( LexArray(parseArray()) );
+          lastChar = nextChar();
+          //throw 'arrays are not implemented';
+        case "'".code, '"'.code:
+          args.push( LexString(parseString()) );
+          lastChar = nextChar();
+
+        case c if (variableNameStart.contains(c)):
+          switch(getVariableName(c)) {
+            case 'true':
+              args.push( LexBool(true) );
+            case 'false':
+              args.push( LexBool(false) );
+            case 'null':
+              args.push( LexNull );
+            case str:
+              args.push( LexCall(str, []) );
+              //throw 'variable references not implemented';
+          }
+
+        case c:
+          return args;
+      }
+      pos--;
+    } 
+
+    throw 'expected function call arguments but reached EOF';
+  }
+ 
+  function parseBracket() : LexExpr {
+    var expr : LexExpr = LexNull;
+
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch(lastChar) {
+        case '/'.code:
+          stripComment();
+          continue;
+        case ' '.code, '\t'.code:
+          continue;
+          // loop
+        case n if (numberStart.contains(n)):
+          expr = LexNumber(parseNumberValue(n));
+        case '{'.code:
+          expr = LexObject(parseObject());
+        case '\\'.code:
+          return parseLambda();
+        case '('.code:
+          expr = parseBracket();
+        case '['.code:
+          expr = LexArray(parseArray());
+          //throw 'arrays are not implemented';
+        case "'".code, '"'.code:
+          expr = LexString(parseString());
+
+        case c if (variableNameStart.contains(c)):
+          switch(getVariableName(c)) {
+            case 'true':
+              expr = LexBool(true);
+            case 'false':
+              expr = LexBool(false);
+            case 'null':
+              expr = LexNull;
+            case str:
+              expr = LexCall(str, parseCallArgs());
               //throw 'variable references not implemented';
           }
 
         case c:
           invalidChar();
       }
+
+      do {
+        switch(lastChar) {
+          case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+            // loop
+          case ')'.code:
+            return expr;
+          case c:
+            throw 'expected \')\' but got ${toChar(c)}';
+        }
+      } while( !StringTools.isEof( (lastChar = nextChar()) ) );
     }
-    
-    throw 'expected variable expression but reached EOF';
+
+    throw 'expected \')\' but reached EOF';
   }
-  
+
   function parseArray() : Array<LexExpr> {
     var expressions : Array<LexExpr> = [];
     
@@ -212,6 +338,7 @@ class Lexer {
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
         case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+          continue;
           // loop
         case '/'.code:
           stripComment();
@@ -221,9 +348,11 @@ class Lexer {
           expressions.push( LexObject(parseObject()));
           lastChar = nextChar();
         case '\\'.code:
-          throw 'lambdas are not implemented';
+          expressions.push( parseLambda() );
+          lastChar = nextChar();
         case '('.code:
-          throw 'bracket expressions are not implemented';
+          expressions.push( parseBracket() );
+          lastChar = nextChar();
         case '['.code:
           expressions.push( LexArray(parseArray()) );
           lastChar = nextChar();
@@ -241,7 +370,7 @@ class Lexer {
             case 'null':
               expressions.push( LexNull );
             case str:
-              expressions.push( LexCall(str, []) );
+              expressions.push( LexCall(str, parseCallArgs()) );
               //throw 'variable references not implemented';
           }
       }
@@ -249,12 +378,14 @@ class Lexer {
       do {
         switch(lastChar) {
           case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+            continue;
             // loop
           case ','.code:
             break;
           case ']'.code:
             return expressions;
-          default:
+          case c:
+            throw 'expected \',\' or \']\', instead got \'${toChar(c)}\'';
             pos--;
             break;
         }
@@ -264,20 +395,19 @@ class Lexer {
    throw 'expected array expression but reached EOF'; 
   }
 
-  function parseFunction(name:String) : LexExpr {
+  function parseFunctionArgs() : Array<String> {
     var args : Array<String> = [];
 
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
         case ' '.code, '\t'.code:
           // loop
-        case '{'.code:
-          trace(args);
-          return LexFunction(Function, name, args, parseFunctionBody());
+        //case '{'.code:
+        //  return args;
         case c if(variableNameStart.contains(c)):
           args.push(getVariableName(c));
         case c:
-         invalidChar(); 
+          return args;
       }
     }
     throw 'expected function but encountered EOF';
@@ -285,6 +415,15 @@ class Lexer {
 
   function parseFunctionBody() : Array<LexExpr> {
     var body : Array<LexExpr> = [];
+    do {
+      switch(lastChar) {
+        case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+        case '{'.code:
+          break;
+        case c:
+          throw 'expected \'{\' but got \'${toChar(c)}\'';
+      }
+    } while( !StringTools.isEof( (lastChar = nextChar()) ) );
 
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
@@ -314,14 +453,18 @@ class Lexer {
         case '{'.code:
           body.push( LexObject(parseObject()) );
         case '\\'.code:
-          throw 'lambdas are not implemented';
+          body.push( parseLambda() );
+          lastChar = nextChar();
         case '('.code:
-          throw 'bracket expressions are not implemented';
+          body.push( parseBracket() );
+          lastChar = nextChar();
         case '['.code:
           body.push( LexArray(parseArray()) );
+          lastChar = nextChar();
           //throw 'arrays are not implemented';
         case "'".code, '"'.code:
           body.push( LexString(parseString()) );
+          lastChar = nextChar();
 
         case c if (variableNameStart.contains(c)):
           switch(getVariableName(c)) {
@@ -333,10 +476,13 @@ class Lexer {
               body.push( LexNull );
             case 'let':
               body.push( parseVariableCreation(ConstantVariable) );
+              continue;
             case 'set':
               body.push( parseVariableCreation(NonConstantVariable) );
+              continue;
             case str:
-              body.push( LexCall(str, []) );
+              body.push( LexCall(str, parseCallArgs()) );
+              //lastChar = nextChar();
               //throw 'variable references not implemented';
           }
 
@@ -393,7 +539,7 @@ class Lexer {
             pos--;
             break;
           case c:
-            invalidChar();
+            throw 'expected variable name for object but got \'${toChar(c)}\'';
         }
       }
 
@@ -404,7 +550,7 @@ class Lexer {
           case ':'.code:
             break;
           case c:
-            invalidChar();
+            throw 'expected \':\' but got \'${toChar(c)}\'';
         }
       }
 
@@ -423,9 +569,11 @@ class Lexer {
             expressions[obj_name] = LexObject(parseObject());
             lastChar = nextChar();
           case '\\'.code:
-            throw 'lambdas are not implemented';
+            expressions[obj_name] = parseLambda();
+
           case '('.code:
-            throw 'bracket expressions are not implemented';
+            expressions[obj_name] = parseBracket();
+            lastChar = nextChar();
           case '['.code:
             expressions[obj_name] = LexArray(parseArray());
             lastChar = nextChar();
@@ -447,7 +595,7 @@ class Lexer {
             }
 
           case c:
-            invalidChar();
+            throw 'expected expression but got \'${toChar(c)}\'';
         }
 
         break;
@@ -472,6 +620,54 @@ class Lexer {
     }
 
     throw 'expected object expression but reached EOF';
+  }
+
+  function parseLambda() : LexExpr {
+    switch((lastChar = nextChar())) {
+      case '('.code:
+      case c:
+        throw 'expected \'\\(\' for lambda expressions but got \'\\${toChar(c)}';
+    }
+    var args = parseLambdaArgs();
+    lastChar = nextChar();
+
+    return LexLambda(args, parseFunctionBody()); 
+  }
+
+  function parseLambdaArgs() : Array<String> {
+    var args :Array<String> = [];
+    
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+
+      switch(lastChar) {
+        case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+          continue;
+        case c if(variableNameStart.contains(c)):
+          args.push(getVariableName(c));
+        case '\\'.code:
+          break;
+        case c:
+          throw 'expected \'\\)\' to end lambda arguments';
+      }
+
+      switch(lastChar) {
+        case ' '.code, '\t'.code, '\r'.code, '\n'.code:
+        case '\\'.code:
+          break;
+        case c:
+          throw 'expected \'\\)\' to end lambda arguments';
+      }
+    }
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+      switch( lastChar ) {
+        case ')'.code:
+          return args;
+        case c:
+          throw 'expected \'\\)\' to end lambda arguments';
+      }
+    }
+
+    throw 'expected lambda arguments but reached EOF';
   }
 
   function parseNumberValue(start_char:Int):Float {
