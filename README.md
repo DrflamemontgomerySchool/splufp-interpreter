@@ -18,7 +18,7 @@ functions return the last statement \
 - [ ] JS Function (Allows a javascript function to be used in splufp)
 - [x] Object (denoted by {})
 - [ ] Macro
-- [ ] Lambda
+- [x] Lambda
 
 ### Data Type Examples
 
