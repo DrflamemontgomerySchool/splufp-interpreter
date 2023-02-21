@@ -61,23 +61,27 @@ class Main {
 
   public static function main() {
     final test_string = "
+externjs add a b
+externjs sub a b
+externjs mul a b
+externjs div a b
+externjs neg a
+externjs array_at arr n
+externjs obj_get obj name
+
+
 let one = -12.32\n
 set two = true\n
 let a = [null, true, false, 1, -1, .01, -.01, '123\t123', [1, 2, 3] ]
 let b = one\n
 let c = { a : 1.12, b:'123', c : { a : 123, b : true } }
-let d = func_name 1 2 3
-func_name a b c {
-  (a (add 1 2 (neg 3)))
-  add 1
-  2
-  '123'
-  123
-  let a = \\(a b c\\) {
-  }
+
+test_func {
+  set a = 12
+  a = 10 
+  a
 }
 
-externjs test_js a b c
 ";
 
     //Lambda.map(parser.Lexer.parse(test_string + '\n'), printExpr);

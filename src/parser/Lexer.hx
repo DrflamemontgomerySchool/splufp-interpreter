@@ -106,6 +106,8 @@ class Lexer {
           // loop
         case c if(variableNameStart.contains(c)):
           return LexExternJS(getVariableName(c), parseFunctionArgs());
+        case c:
+          throw 'expected extern expression, instead got\'${toChar(c)}\''; 
       }
     }
 
@@ -199,7 +201,15 @@ class Lexer {
             case 'null':
               return LexNull;
             case str:
-              return LexCall(str, parseCallArgs());
+              var args = parseCallArgs();
+              if(args.length == 1) {
+                switch(args[0]) {
+                  case LexAssignment(name, body):
+                    throw 'expected call arguments but got an assignment instead';
+                  case c:
+                }
+              }
+              return LexCall(str, args);
               //throw 'variable references not implemented';
           }
 
@@ -213,9 +223,11 @@ class Lexer {
 
   function parseCallArgs() : Array<LexExpr> {
     var args : Array<LexExpr> = [];
-
-    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+    
+    do {
       switch(lastChar) {
+        case '='.code:
+          return [LexAssignment('', parseVariableAssignmentExpr())];
         case '/'.code:
           stripComment();
           continue;
@@ -236,7 +248,6 @@ class Lexer {
         case '['.code:
           args.push( LexArray(parseArray()) );
           lastChar = nextChar();
-          //throw 'arrays are not implemented';
         case "'".code, '"'.code:
           args.push( LexString(parseString()) );
           lastChar = nextChar();
@@ -258,7 +269,7 @@ class Lexer {
           return args;
       }
       pos--;
-    } 
+    } while( !StringTools.isEof( (lastChar = nextChar()) ) );
 
     throw 'expected function call arguments but reached EOF';
   }
@@ -297,7 +308,15 @@ class Lexer {
             case 'null':
               expr = LexNull;
             case str:
-              expr = LexCall(str, parseCallArgs());
+              var args = parseCallArgs();
+              if(args.length == 1) {
+                switch(args[0]) {
+                  case LexAssignment(name, body):
+                    throw 'expected call arguments but got an assignment instead';
+                  case c:
+                }
+              }
+              expr = LexCall(str, args);
               //throw 'variable references not implemented';
           }
 
@@ -370,7 +389,15 @@ class Lexer {
             case 'null':
               expressions.push( LexNull );
             case str:
-              expressions.push( LexCall(str, parseCallArgs()) );
+              var args = parseCallArgs();
+              if(args.length == 1) {
+                switch(args[0]) {
+                  case LexAssignment(name, body):
+                    throw 'expected call arguments but got an assignment instead';
+                  case c:
+                }
+              }
+              expressions.push( LexCall(str, args) );
               //throw 'variable references not implemented';
           }
       }
@@ -401,11 +428,14 @@ class Lexer {
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
         case ' '.code, '\t'.code:
-          // loop
-        //case '{'.code:
-        //  return args;
+          continue;
         case c if(variableNameStart.contains(c)):
           args.push(getVariableName(c));
+        case c:
+          return args;
+      }
+      switch(lastChar) {
+        case ' '.code, '\t'.code:
         case c:
           return args;
       }
@@ -481,9 +511,18 @@ class Lexer {
               body.push( parseVariableCreation(NonConstantVariable) );
               continue;
             case str:
-              body.push( LexCall(str, parseCallArgs()) );
-              //lastChar = nextChar();
-              //throw 'variable references not implemented';
+              var args = parseCallArgs();
+              if(args.length == 1) {
+                switch(args[0]) {
+                  case LexAssignment(name, b):
+                    body.push( LexAssignment(str, b) );
+                  case c:
+                    body.push(LexCall(str, args));
+                }
+              }
+              else {
+                body.push(LexCall(str, args));
+              }
           }
 
         case c:
@@ -647,7 +686,7 @@ class Lexer {
         case '\\'.code:
           break;
         case c:
-          throw 'expected \'\\)\' to end lambda arguments';
+          throw 'expected \'\\)\' to end lambda arguments but got \'${toChar(c)}\' instead';
       }
 
       switch(lastChar) {
@@ -655,7 +694,7 @@ class Lexer {
         case '\\'.code:
           break;
         case c:
-          throw 'expected \'\\)\' to end lambda arguments';
+          throw 'expected \'\\)\' to end lambda arguments but got \'${toChar(c)}\' instead';
       }
     }
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {

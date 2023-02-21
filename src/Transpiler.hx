@@ -17,7 +17,46 @@ class Transpiler {
   var exprs : Array<LexExpr>;
   
   function variableBodyToJS(body:Array<LexExpr>) : String {
-    return 'function() { return ${exprToJavascript(body[0])}; }';
+    return '${exprToJavascript(body[0])}';
+  }
+
+  function functionExprToJS(expr:LexExpr, result:String) : String {
+    return result + exprToJavascript(expr) + ';';
+  }
+
+  function functionBodyToJS(body:Array<LexExpr>) : String {
+    return '${body.splice(0, body.length-1).fold(functionExprToJS, '')} return ${exprToJavascript(body[body.length-1])};';
+  }
+
+  function externArgsToJS(args:Array<String>) : String {
+    if(args.length > 1) {
+      return '${args[0]}.call()' + ',' + externArgsToJS(args.splice(1, args.length-1));
+    } else if(args.length > 0) {
+      return '${args[0]}.call()';
+    }
+    return '';
+  }
+
+
+  function functionToJS(args:Array<String>, body:Array<LexExpr>, arg_length:Int) {
+    if(arg_length == 0) {
+      return 'function() {${functionBodyToJS(body)}}()';
+    }
+
+    if(args.length > 1) {
+      return 'function(__spl__${args[0]}) { return ' + functionToJS(args.splice(1, args.length-1), body, arg_length) + '; }';
+    }
+    else if(args.length > 0) {
+      return 'function(__spl__${args[0]}) { ${functionBodyToJS(body)}; }';
+    }
+    return functionBodyToJS(body);
+  }
+
+  function externToJS(name:String, args:Array<String>, full_args:Array<String>) : String {
+    if(args.length > 0) {
+      return 'function(${args[0]}) { return ' + externToJS(name, args.copy().splice(1, args.length-1), full_args) + '; }';
+    }
+    return '${name}(${externArgsToJS(full_args)})';
   }
 
   function objectToJS(map:Map<String, LexExpr>) : String {
@@ -32,7 +71,7 @@ class Transpiler {
   function callsToJS(args:Array<LexExpr>) : String {
     var calls = '';
     for(i in args) {
-      calls += '(${exprToJavascript(i)})';
+      calls += '(new __splufp__function(${exprToJavascript(i)}))';
     }
     return calls;
   }
@@ -66,10 +105,13 @@ class Transpiler {
         return '__spl__$name.call()${callsToJS(args)}';
 
       case LexAssignment(name, val):
-        return '__spl__$name = function() { return ${exprToJavascript(val)}; };';
+        return '__spl__$name.set_value(${exprToJavascript(val)})';
 
       case LexExternJS(name, args):
-        return 'const __spl__$name = function() {};';
+        return 'const __spl__$name = new __splufp__function(${externToJS(name, args, args)});';
+  
+      case LexLambda(args, body):
+        return '${functionToJS(args, body, args.length)}';
 
       case LexFunction(type, name, args, body):
         switch(type) {
@@ -78,9 +120,10 @@ class Transpiler {
           case NonConstantVariable:
             return 'var __spl__$name = new __splufp__function_assignable(${exprToJavascript(body[0])});'; 
           case Function:
+            return 'const __spl__$name = new __splufp__function(${functionToJS(args, body, args.length)});';
         }
 
-      case c:
+      default:
         return '';
 
     }
@@ -96,27 +139,53 @@ class Transpiler {
 class __splufp__function {
   #value;
   constructor(value) {
-    this._value = value;
+    this.value = value;
   }
 
   call() {
-    return this._value();
+    return this.value;
   }
 }
 
 class __splufp__function_assignable {
   #value;
   constructor(value) {
-    this._value = value;
+    this.value = value;
   }
 
-  call() {
-    return this._value;
-  }
+  call() { return this.value; }
 
   set_value(value) {
-    this._value = value;
+    this.value = value;
   }
+}
+
+function add(a, b) {
+  return a + b;
+}
+
+function sub(a, b) {
+  return a - b;
+}
+
+function mul(a, b) {
+  return a * b;
+}
+
+function div(a, b) {
+  return a / b;
+}
+
+function neg(a) {
+  return -a;
+}
+
+function obj_get(obj, name) {
+  return obj[name];
+}
+
+function array_at(arr, n) {
+  return arr[n];
 }
 ";
   }
