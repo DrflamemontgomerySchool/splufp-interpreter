@@ -1,0 +1,4 @@
+base.hxml
+-lib hxnodejs
+-js bin/js/main.js
+
