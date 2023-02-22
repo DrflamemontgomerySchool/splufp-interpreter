@@ -1,18 +1,30 @@
+// arithmetic
 externjs add a b
 externjs sub a b
 externjs mul a b
 externjs div a b
 externjs neg a
 
+// console logging
 externjs log str
 
+// array access
 externjs array_at arr n
 externjs slice arr pos end
 externjs splice arr pos len
 externjs len arr
 
+// iterative functions
 externjs foldl fn init arr
 externjs foldr fn init arr
 externjs map fn arr
 
+// boolean
+externjs and a b
+externjs or a b
+externjs eq a b
+
+// miscellaneous
 externjs obj_get obj name
+
+externjs none

@@ -94,3 +94,34 @@ function map(fn, arr) {
 function log(str) {
   console.log(str);
 }
+
+
+function none() {
+  return;
+}
+
+function and(a, b) {
+  return a && b;
+}
+
+function or(a, b) {
+  return a || b;
+}
+
+function eq(a, b) {
+  return a == b;
+}
+
+var __spl__if = new __splufp__function(
+  function(statement) {
+    return function(if_fn) {
+      return function(else_fn) {
+        if(statement.call()) {
+          return if_fn.call()();
+        } else {
+          return else_fn.call()();
+        }
+      }
+    }
+  }
+);
