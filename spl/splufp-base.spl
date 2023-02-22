@@ -1,0 +1,7 @@
+externjs add a b
+externjs sub a b
+externjs mul a b
+externjs div a b
+externjs neg a
+externjs array_at arr n
+externjs obj_get obj name
