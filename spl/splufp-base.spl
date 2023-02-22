@@ -3,5 +3,16 @@ externjs sub a b
 externjs mul a b
 externjs div a b
 externjs neg a
+
+externjs log str
+
 externjs array_at arr n
+externjs slice arr pos end
+externjs splice arr pos len
+externjs len arr
+
+externjs foldl fn init arr
+externjs foldr fn init arr
+externjs map fn arr
+
 externjs obj_get obj name
