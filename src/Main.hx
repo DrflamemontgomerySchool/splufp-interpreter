@@ -3,14 +3,20 @@ package;
 import parser.Lexer.Lexer;
 import parser.Lexer.LexExpr;
 
+using Lambda;
+
 class Main {
 
-  static function printExpr(expr:LexExpr) {
+  static inline function printToConsole(s:String) {
 #if js
-    js.Browser.console.log(exprToString(expr));
+    js.Browser.console.log(s);
 #else
-    Std.printLn(exprToString(expr));
+    Sys.println(s);
 #end
+  }
+
+  static function printExpr(expr:LexExpr) {
+    printToConsole(exprToString(expr));
     return '';
   }
 
@@ -59,6 +65,20 @@ class Main {
     }
   }
 
+  static var fileOut = 'out.js';
+
+  static function joinFileString(filename:String, result:String) : String {
+    switch(filename) {
+      case s if(~/^--out=/.match(s)):
+        fileOut = ~/^--out=/.replace(s, '');
+        return result;
+      case s if(!sys.FileSystem.exists(filename)):
+        throw '\'${filename}\' is not a valid file name';
+      case s:
+        return '${result}${sys.io.File.getContent(s)}\n';
+    }
+  }
+
   public static function main() {
     final test_string = "
 externjs add a b
@@ -82,13 +102,21 @@ test_func {
   a
 }
 
-";
+  ";
+  
+  if(Sys.args().length <= 0) {
+    printToConsole('usage: splufp-compiler [--out=filename] program-files...');
+    return;
+  }
+  final content = Sys.args().fold(joinFileString, '');
+  sys.io.File.saveContent(fileOut, Transpiler.transpile(parser.Lexer.parse(content)));
+  
+  //var program_string = '';
 
-    //Lambda.map(parser.Lexer.parse(test_string + '\n'), printExpr);
-#if js
-  js.Browser.console.log(Transpiler.getJavascriptHeader() + Transpiler.transpile(parser.Lexer.parse(test_string + '\n')));
-#else
-  Std.printLn(Transpiler.transpile(parser.Lexer.parse(test_string + '\n')));
-#end
+  /*for(arg in Sys.args()) {
+    printToConsole(arg);
+  }*/
+
+//printToConsole(Transpiler.transpile(parser.Lexer.parse(test_string + '\n')));
   }
 }
