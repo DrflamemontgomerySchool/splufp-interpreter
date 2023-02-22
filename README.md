@@ -36,7 +36,7 @@ let this_is_a_array = [1, 2, 3, 4, 5]
 this_is_a_function a b c { a + b + c }
 externjs this_is_a_js_function a b
 let this_is_a_object = { a : 2, b : 11 }
-let this_is_a_lambda = \(x, y\) -> x + y
+let this_is_a_lambda = \(x y\) { add x y }
 ```
 
 ### How to declare variables and functions
@@ -102,7 +102,7 @@ Input:
 let variable = 5
 
 func a b c d = {
-  add a b c d
+  [a, b, c, d]
 }
   
 main {
@@ -116,25 +116,25 @@ Ouput:
 
 ```javascript
 
-var __spl__variable = function() { return 5; }
+var __spl__variable = new __splufp__function(5);
 
-var __spl__func = function() {
-  function(__spl__func__a) {
-    return function(__spl__func__b) {
-      return function(__spl__func__c) {
-        return function(__spl__func__d) {
-          return __spl__func__add()(__spl__func__a, __spl__func__b, __spl__func__c, __spl__func__d);
+var __spl__func = new __splufp_function(
+  function(__spl__a) {
+    return function(__spl__b) {
+      return function(__spl__c) {
+        return function(__spl__d) {
+          return new __splufp__function([__spl__a.call(), __spl__b.call(), __spl__c.call(), __spl__d.call()];
         }
       }
     }
   }
-}
+);
 
 var __spl__main = function() {
-  var __spl__b = function() {
-    return __spl__func()(1)(2)(3);
-  }
-  console.log(__spl__b()(1));
+  var __spl__b = new __splufp__function(
+    __spl__func()(new __splufp__function(1))(new __splufp__function(2))(new __splufp__function(3));
+  );
+  __spl__log(__spl__b.call()(new __splufp__function(1)));
 }
 
 ```
