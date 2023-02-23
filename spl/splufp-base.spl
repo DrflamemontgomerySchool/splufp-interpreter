@@ -23,6 +23,10 @@ externjs map fn arr
 externjs and a b
 externjs or a b
 externjs eq a b
+externjs geq a b
+externjs gt a b
+externjs leq a b
+externjs lt a b
 
 // miscellaneous
 externjs obj_get obj name

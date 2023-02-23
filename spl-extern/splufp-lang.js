@@ -22,6 +22,7 @@ class __splufp__function_assignable {
   }
 }
 
+
 function add(a, b) {
   return a + b;
 }
@@ -112,7 +113,25 @@ function eq(a, b) {
   return a == b;
 }
 
-var __spl__if = new __splufp__function(
+function geq(a, b) {
+  return a >= b;
+}
+
+function leq(a, b) {
+  return a <= b;
+}
+
+function gt(a, b) {
+  return a > b;
+}
+
+function lt(a, b) {
+  return a < b;
+}
+
+
+
+/*var __spl__if = new __splufp__function(
   function(statement) {
     return function(if_fn) {
       return function(else_fn) {
@@ -124,4 +143,4 @@ var __spl__if = new __splufp__function(
       }
     }
   }
-);
+);*/
