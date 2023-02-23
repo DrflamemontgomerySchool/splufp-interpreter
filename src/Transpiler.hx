@@ -102,7 +102,12 @@ class Transpiler {
         return objectToJS(map);
 
       case LexCall(name, args):
-        return '__spl__$name.call()${callsToJS(args)}';
+        switch(name) {
+          case 'ret':
+            return 'return ${callsToJS(args)}.call()';
+          case _:
+            return '__spl__$name.call()${callsToJS(args)}';
+        }
 
       case LexAssignment(name, val):
         return '__spl__$name.set_value(${exprToJavascript(val)})';
@@ -122,6 +127,11 @@ class Transpiler {
           case Function:
             return 'const __spl__$name = new __splufp__function(${functionToJS(args, body, args.length)});';
         }
+      case LexIf(condition, if_body, else_body):
+        return 'if(${exprToJavascript(condition)}) {${if_body.fold(functionExprToJS, '')}} else {${else_body.fold(functionExprToJS, '')}}';
+
+      case LexWhile(condition, body):
+        return 'while(${exprToJavascript(condition)}) {${body.fold(functionExprToJS, '')}}'; 
 
       default:
         return '';
