@@ -18,6 +18,8 @@ enum LexExpr {
   LexCall(name:String, args:Array<LexExpr>);
   LexAssignment(name:String, val:LexExpr);
   LexExternJS(name:String, args:Array<String>);
+  LexIf(condition : LexExpr, if_body : Array<LexExpr>, else_body : Array<LexExpr>);
+  LexWhile(condition : LexExpr, body : Array<LexExpr>);
 }
 
 class Lexer {
@@ -498,6 +500,12 @@ class Lexer {
 
         case c if (variableNameStart.contains(c)):
           switch(getVariableName(c)) {
+            case 'if':
+              body.push(parseIfStatement());
+              lastChar = nextChar();
+            case 'while':
+              body.push(parseWhileStatement());
+              lastChar = nextChar();
             case 'true':
               body.push( LexBool(true) );
             case 'false':
@@ -659,6 +667,28 @@ class Lexer {
     }
 
     throw 'expected object expression but reached EOF';
+  }
+
+
+  function parseIfStatement() : LexExpr {
+    var condition = parseVariableAssignmentExpr();
+    lastChar = nextChar();
+
+    var if_body = parseFunctionBody();
+    lastChar = nextChar();
+
+    var else_body = parseFunctionBody();
+
+    return LexIf(condition, if_body, else_body);
+  }
+
+  function parseWhileStatement() : LexExpr {
+    var condition = parseVariableAssignmentExpr();
+    lastChar = nextChar();
+    //trace(toChar(lastChar));
+    var body = parseFunctionBody();
+    //trace(toChar(lastChar));
+    return LexWhile(condition, body);
   }
 
   function parseLambda() : LexExpr {
