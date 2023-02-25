@@ -15,7 +15,7 @@ functions return the last statement \
 - [x] Number (floats and integers are the same)
 - [x] Array
 - [x] Function
-- [ ] JS Function (Allows a javascript function to be used in splufp)
+- [x] JS Function (Allows a javascript function to be used in splufp)
 - [x] Object (denoted by {})
 - [ ] Macro
 - [x] Lambda
