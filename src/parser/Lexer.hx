@@ -685,9 +685,7 @@ class Lexer {
   function parseWhileStatement() : LexExpr {
     var condition = parseVariableAssignmentExpr();
     lastChar = nextChar();
-    //trace(toChar(lastChar));
     var body = parseFunctionBody();
-    //trace(toChar(lastChar));
     return LexWhile(condition, body);
   }
 
