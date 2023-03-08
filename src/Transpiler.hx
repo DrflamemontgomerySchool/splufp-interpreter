@@ -39,9 +39,9 @@ class Transpiler {
 
 
   function functionToJS(args:Array<String>, body:Array<LexExpr>, arg_length:Int) {
-    if(arg_length == 0) {
-      return 'function() {${functionBodyToJS(body)}}()';
-    }
+    /*if(arg_length == 0) {
+      return 'function() {${functionBodyToJS(body)}}';
+    }*/
 
     if(args.length > 1) {
       return 'function(__spl__${args[0]}) { return ' + functionToJS(args.splice(1, args.length-1), body, arg_length) + '; }';
@@ -71,11 +71,20 @@ class Transpiler {
   function callsToJS(args:Array<LexExpr>) : String {
     var calls = '';
     for(i in args) {
-      calls += '(new __splufp__function(${exprToJavascript(i)}))';
+      calls += '(${callArgToJS(i)})';
     }
     return calls;
   }
-    
+  
+  function callArgToJS(expr:LexExpr) : String {
+    switch(expr) {
+      case LexCall(name, args) if(args.length == 0):
+        return '__spl__${name}';
+      case _:
+        return 'new __splufp__function(${exprToJavascript(expr)})';
+    }
+  }
+
   function __exprToJavascript(expr : LexExpr, result : String) : String {
     return '$result\n${exprToJavascript(expr)}';
   }
@@ -113,10 +122,17 @@ class Transpiler {
         return '__spl__$name.set_value(${exprToJavascript(val)})';
 
       case LexExternJS(name, args):
-        return 'const __spl__$name = new __splufp__function(${externToJS(name, args, args)});';
+        if(args.length > 0) {
+          return 'const __spl__$name = new __splufp__function(function() { return ${externToJS(name, args, args)};});';
+        }
+        return 'const __spl__$name = new __splufp__function(function() { ${externToJS(name, args, args)};});';
   
       case LexLambda(args, body):
-        return '${functionToJS(args, body, args.length)}';
+        if(args.length > 0) {
+          return 'function(){ return ${functionToJS(args, body, args.length)};}';
+        }
+        return 'function(){ ${functionToJS(args, body, args.length)};}';
+
 
       case LexFunction(type, name, args, body):
         switch(type) {
@@ -125,7 +141,10 @@ class Transpiler {
           case NonConstantVariable:
             return 'var __spl__$name = new __splufp__function_assignable(${exprToJavascript(body[0])});'; 
           case Function:
-            return 'const __spl__$name = new __splufp__function(${functionToJS(args, body, args.length)});';
+            if(args.length > 0) {
+              return 'const __spl__$name = new __splufp__function(function(){ return ${functionToJS(args, body, args.length)};});';
+            }
+            return 'const __spl__$name = new __splufp__function(function(){ ${functionToJS(args, body, args.length)};});';
         }
       case LexIf(condition, if_body, else_body):
         return 'if(${exprToJavascript(condition)}) {${if_body.fold(functionExprToJS, '')}} else {${else_body.fold(functionExprToJS, '')}}';
