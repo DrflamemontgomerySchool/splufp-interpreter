@@ -5,6 +5,9 @@ class __splufp__function {
   }
 
   call() {
+    if(typeof(this.value) == "function") {
+      return this.value();
+    }
     return this.value;
   }
 }
@@ -15,7 +18,12 @@ class __splufp__function_assignable {
     this.value = value;
   }
 
-  call() { return this.value; }
+  call() {
+    if(typeof(this.value) == "function") {
+      return this.value();
+    }
+    return this.value;
+  }
 
   set_value(value) {
     this.value = value;
