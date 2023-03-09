@@ -52,11 +52,36 @@ class Transpiler {
     return functionBodyToJS(body);
   }
 
-  function externToJS(name:String, args:Array<String>, full_args:Array<String>) : String {
-    if(args.length > 0) {
-      return 'function(${args[0]}) { return ' + externToJS(name, args.copy().splice(1, args.length-1), full_args) + '; }';
+  function fullArgsToJSArgs(args:Array<String>) : String {
+    if(args.length > 1) {
+      return '${args[0]}, ${fullArgsToJSArgs(args.copy().splice(1, args.length-1))}';
     }
-    return '${name}(${externArgsToJS(full_args)})';
+    if(args.length > 0) {
+      return '${args[0]}';
+    }
+    return '';
+  }
+
+  function fullArgsToJSSplufpCalls(args:Array<String>) : String {
+    if(args.length > 1) {
+      return '__spl__${args[0]}.call(), ${fullArgsToJSSplufpCalls(args.copy().splice(1, args.length-1))}';
+    }
+    if(args.length > 0) {
+      return '__spl__${args[0]}.call()';
+    }
+    return '';
+  }
+
+  function externToJS(name:String, args:Array<String>, full_args:Array<String>, profile:Null<String>) : String {
+    if(args.length > 0) {
+      return 'function(__spl__${args[0]}) { return ' + externToJS(name, args.copy().splice(1, args.length-1), full_args, profile) + '; }';
+    }
+
+    if(profile == null) {
+      return '${name}(${fullArgsToJSSplufpCalls(full_args)})';
+    }
+    
+    return 'function(${fullArgsToJSArgs(full_args)}) { return ${profile}; }(${fullArgsToJSSplufpCalls(full_args)})';
   }
 
   function objectToJS(map:Map<String, LexExpr>) : String {
@@ -121,11 +146,11 @@ class Transpiler {
       case LexAssignment(name, val):
         return '__spl__$name.set_value(${exprToJavascript(val)})';
 
-      case LexExternJS(name, args):
+      case LexExternJS(name, args, profile):
         if(args.length > 0) {
-          return 'const __spl__$name = new __splufp__function(function() { return ${externToJS(name, args, args)};});';
+          return 'const __spl__$name = new __splufp__function(function() { return ${externToJS(name, args, args, profile)};});';
         }
-        return 'const __spl__$name = new __splufp__function(function() { ${externToJS(name, args, args)};});';
+        return 'const __spl__$name = new __splufp__function(function() { ${externToJS(name, args, args, profile)};});';
   
       case LexLambda(args, body):
         if(args.length > 0) {
