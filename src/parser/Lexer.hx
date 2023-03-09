@@ -17,7 +17,7 @@ enum LexExpr {
   LexLambda(args:Array<String>, body:Array<LexExpr>);
   LexCall(name:String, args:Array<LexExpr>);
   LexAssignment(name:String, val:LexExpr);
-  LexExternJS(name:String, args:Array<String>);
+  LexExternJS(name:String, args:Array<String>, profile:Null<String>);
   LexIf(condition : LexExpr, if_body : Array<LexExpr>, else_body : Array<LexExpr>);
   LexWhile(condition : LexExpr, body : Array<LexExpr>);
 }
@@ -107,7 +107,23 @@ class Lexer {
         case ' '.code, '\t'.code:
           // loop
         case c if(variableNameStart.contains(c)):
-          return LexExternJS(getVariableName(c), parseFunctionArgs());
+          final var_name = getVariableName(c);
+          final args = parseFunctionArgs();
+          var profile = null;
+          do {
+            switch(lastChar) {
+              case ' '.code, '\t'.code:
+                // continue
+              case "'".code, '"'.code:
+                profile = parseString();
+                break;
+              case _:
+                break;
+            }
+          } while( StringTools.isEof( (lastChar = nextChar()) ) );
+          //pos--;
+          
+          return LexExternJS(var_name, args, profile);
         case c:
           throw 'expected extern expression, instead got\'${toChar(c)}\''; 
       }
