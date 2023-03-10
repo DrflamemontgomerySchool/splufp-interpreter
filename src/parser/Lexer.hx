@@ -789,7 +789,7 @@ class Lexer {
     ].concat([
       for(i in 'A'.code...'Z'.code) i
     ]).concat([
-      for(i in '0'.code...'0'.code) i
+      for(i in '0'.code...'9'.code) i
     ]).concat([
       '_'.code
     ]);
