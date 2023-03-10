@@ -1,6 +1,12 @@
 class __splufp__function {
   #value;
   constructor(value) {
+    if(typeof(value) == 'function') {
+      if(value.length > 0) {
+        this.value = function() { return value };
+        return;
+      }
+    }
     this.value = value;
   }
 
@@ -15,6 +21,12 @@ class __splufp__function {
 class __splufp__function_assignable {
   #value;
   constructor(value) {
+    if(typeof(value) == 'function') {
+      if(value.length > 0) {
+        this.value = function() { return value };
+        return;
+      }
+    }
     this.value = value;
   }
 
