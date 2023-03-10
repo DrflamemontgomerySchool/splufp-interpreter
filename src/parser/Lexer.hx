@@ -33,15 +33,15 @@ class Lexer {
   var lastChar:Int;
   final whitespace : Array<Int> = [' '.code, '\t'.code, '\n'.code, '\r'.code];
   final variableNameStart :Array<Int> = [
-    for (i in 'a'.code...'z'.code) i
+    for (i in 'a'.code...('z'.code + 1)) i
   ].concat([
-      for (i in 'A'.code...'Z'.code) i   
+      for (i in 'A'.code...('Z'.code + 1)) i   
   ]).concat([
     '_'.code
   ]);
 
   final numberStart : Array<Int> = [
-    for(i in '0'.code...'9'.code) i
+    for(i in '0'.code...('9'.code + 1)) i
   ].concat([
       '-'.code, '.'.code
   ]);
@@ -757,7 +757,7 @@ class Lexer {
     var num_string = toChar(start_char);
 
     final numberValues : Array<Int> = [
-      for(i in '0'.code...'9'.code) i
+      for(i in '0'.code...('9'.code + 1)) i
     ].concat([
         '.'.code
     ]);
@@ -785,11 +785,11 @@ class Lexer {
 
   function getVariableName(start_char:Int):String {
     final variableNameMatch : Array<Int> = [
-      for(i in 'a'.code...'z'.code) i
+      for(i in 'a'.code...('z'.code + 1)) i
     ].concat([
-      for(i in 'A'.code...'Z'.code) i
+      for(i in 'A'.code...('Z'.code + 1)) i
     ]).concat([
-      for(i in '0'.code...'9'.code) i
+      for(i in '0'.code...('9'.code + 1)) i
     ]).concat([
       '_'.code
     ]);
