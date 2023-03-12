@@ -68,3 +68,8 @@ function map(fn, arr) {
     map(fn, arr.slice(1, arr.length));
   }
 }
+
+function delay(ms) {
+  var now = new Date().getTime();
+  while(new Date().getTime() < now + ms){ /* Do nothing */ }
+}

@@ -20,14 +20,43 @@ class Main {
     }
   }
 
+  static function copyDirectory(src:String, dest:String) {
+    if(sys.FileSystem.exists(src)) {
+      sys.FileSystem.createDirectory(dest);
+      for(file in sys.FileSystem.readDirectory(src)) {
+        var path = haxe.io.Path.join([src, file]);
+        var dpath = haxe.io.Path.join([dest, file]);
+
+        if(sys.FileSystem.isDirectory(path)) {
+          copyDirectory(path, dpath);
+        }
+        else {
+          sys.io.File.saveContent(dpath, '');
+          sys.io.File.copy(path, dpath);
+        }
+      }
+    }
+  }
+
   public static function main() {
   
-  if(Sys.args().length <= 0) {
-    Sys.println('usage: splufp-compiler [--out=filename] program-files...');
-    return;
-  }
-  final content = Sys.args().fold(joinFileString, '');
-  sys.io.File.saveContent(fileOut, Transpiler.transpile(parser.Lexer.parse(content)));
+    final cur_path = haxe.io.Path.directory(Sys.programPath());
+    if(Sys.args().length <= 0) {
+      Sys.println('usage: splufp-compiler init_project');
+      Sys.println('usage: splufp-compiler [--out=filename] program-files...');
+      return;
+    }
+
+    switch(Sys.args()[0]) {
+      case 'init_project':
+        copyDirectory('${cur_path}/spl-extern', 'spl-extern');
+        return; 
+    }
+
+    final paths = ['${cur_path}/spl/splufp-base.spl'].concat(Sys.args());
+
+    final content = paths.fold(joinFileString, '');
+    sys.io.File.saveContent(fileOut, Transpiler.transpile(parser.Lexer.parse(content)));
   
   }
 }

@@ -8,11 +8,15 @@ externjs neg a '-a'
 // console logging
 externjs log str 'console.log(str)'
 
-// array access
+// array access and creation
 externjs array_at arr n     'arr[n]'
+externjs set_arr arr n v     'arr[n] = v'
 externjs slice arr pos end  'arr.slice(pos, end)'
 externjs splice arr pos len 'arr.splice(pos, len)'
 externjs len arr            'arr.length'
+externjs range start end    '[...Array(end-start).keys()].map(i => i + start);'
+externjs array size         'Array(size)'
+externjs fill arr val       'arr.fill(val)'
 
 // iterative functions
 externjs foldl fn init arr
@@ -23,6 +27,7 @@ externjs map fn arr
 externjs and a b 'a && b'
 externjs or a b  'a || b'
 externjs eq a b  'a == b'
+externjs neq a b 'a != b'
 externjs geq a b 'a >= b'
 externjs gt a b  'a > b'
 externjs leq a b 'a <= b'
@@ -30,3 +35,5 @@ externjs lt a b  'a < b'
 
 // miscellaneous
 externjs obj_get obj name 'obj[name]'
+externjs obj_set obj name val 'obj[name] = val'
+externjs delay ms

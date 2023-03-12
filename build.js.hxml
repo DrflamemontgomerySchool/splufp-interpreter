@@ -1,4 +1,6 @@
 base.hxml
 -lib hxnodejs
 -js bin/js/main.js
+-cmd cp -r spl bin/js/
+-cmd cp -r spl-extern bin/js/
 
