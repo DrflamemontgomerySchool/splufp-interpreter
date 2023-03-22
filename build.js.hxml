@@ -1,6 +1,8 @@
 base.hxml
 -lib hxnodejs
 -js bin/js/main.js
+-cmd echo "$(echo '#!/usr/bin/env node' && cat bin/js/main.js)" > bin/js/main.js
+-cmd chmod +x bin/js/main.js
 -cmd cp -r spl bin/js/
 -cmd cp -r spl-extern bin/js/
 

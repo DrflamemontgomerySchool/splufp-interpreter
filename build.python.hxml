@@ -1,4 +1,5 @@
 base.hxml
 -python bin/python/main.py
+-cmd echo -e "$(echo '#!/usr/bin/env python' && cat bin/python/main.py)" > bin/python/main.py
 -cmd cp -r spl bin/python/
 -cmd cp -r spl-extern bin/python/
