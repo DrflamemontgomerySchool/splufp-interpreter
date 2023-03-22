@@ -10,7 +10,7 @@ externjs log str 'console.log(str)'
 
 // array access and creation
 externjs array_at arr n     'arr[n]'
-externjs set_arr arr n v     'arr[n] = v'
+externjs array_set arr n v     'arr[n] = v'
 externjs slice arr pos end  'arr.slice(pos, end)'
 externjs splice arr pos len 'arr.splice(pos, len)'
 externjs len arr            'arr.length'
@@ -37,3 +37,7 @@ externjs lt a b  'a < b'
 externjs obj_get obj name 'obj[name]'
 externjs obj_set obj name val 'obj[name] = val'
 externjs delay ms
+
+// javascript
+externjs elementById id 'document.getElementById(id)'
+externjs onTimeout func delay 'setTimeout(func, delay)'
