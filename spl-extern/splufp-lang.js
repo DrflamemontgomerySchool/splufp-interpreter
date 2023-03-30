@@ -42,7 +42,7 @@ class __splufp__function_assignable {
   }
 }
 
-function foldr(fn, init, arr) {
+function foldl(fn, init, arr) {
   if(arr.length > 1) {
     return foldr(fn, fn(new __splufp__function(init))(new __splufp__function(arr[0])), arr.slice(1, arr.length));
   }
@@ -52,7 +52,7 @@ function foldr(fn, init, arr) {
   return init;
 }
 
-function foldl(fn, init, arr) {
+function foldr(fn, init, arr) {
   if(arr.length > 1) {
     return foldl(fn, fn(new __splufp__function(arr[0]))(new __splufp__function(init)), arr.slice(1, arr.length));
   }
