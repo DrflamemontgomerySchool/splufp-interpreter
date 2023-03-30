@@ -54,7 +54,7 @@ function foldl(fn, init, arr) {
 
 function foldr(fn, init, arr) {
   if(arr.length > 1) {
-    return foldr(fn, fn(new __splufp__function(arr[0]))(new __splufp__function(init)), arr.slice(1, arr.length));
+    return fn(new __splufp__function(arr[0]))(new __splufp__function(foldr(fn, init, arr.slice(1, arr.length))));
   }
   else if(arr.length > 0) {
     return fn(new __splufp__function(arr[0]))(new __splufp__function(init));
