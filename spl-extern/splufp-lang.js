@@ -44,7 +44,7 @@ class __splufp__function_assignable {
 
 function foldl(fn, init, arr) {
   if(arr.length > 1) {
-    return foldr(fn, fn(new __splufp__function(init))(new __splufp__function(arr[0])), arr.slice(1, arr.length));
+    return foldl(fn, fn(new __splufp__function(init))(new __splufp__function(arr[0])), arr.slice(1, arr.length));
   }
   else if(arr.length > 0) {
     return fn(new __splufp__function(init))(new __splufp__function(arr[0]));
@@ -54,7 +54,7 @@ function foldl(fn, init, arr) {
 
 function foldr(fn, init, arr) {
   if(arr.length > 1) {
-    return foldl(fn, fn(new __splufp__function(arr[0]))(new __splufp__function(init)), arr.slice(1, arr.length));
+    return foldr(fn, fn(new __splufp__function(arr[0]))(new __splufp__function(init)), arr.slice(1, arr.length));
   }
   else if(arr.length > 0) {
     return fn(new __splufp__function(arr[0]))(new __splufp__function(init));
