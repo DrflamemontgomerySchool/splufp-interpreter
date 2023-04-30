@@ -6,28 +6,30 @@ using Lambda;
 
 class Transpiler {
 
+  // Helper function for transpiling an AST
   public static function transpile(expressions : Array<LexExpr> ) {
     return new Transpiler(expressions).doTranspile();
   }
 
-  public function new(expressions : Array<LexExpr> ) {
+  function new(expressions : Array<LexExpr> ) {
     exprs = expressions;
   }
 
   var exprs : Array<LexExpr>;
   
-  function variableBodyToJS(body:Array<LexExpr>) : String {
-    return '${exprToJavascript(body[0])}';
-  }
 
+  // Make a JavaScript expression from a Splufp Function Expression
   function functionExprToJS(expr:LexExpr, result:String) : String {
     return result + exprToJavascript(expr) + ';';
   }
 
+  // Iterate over all function expressions to create
+  // JavaScript expressions
   function functionBodyToJS(body:Array<LexExpr>) : String {
     return '${body.splice(0, body.length-1).fold(functionExprToJS, '')} return ${exprToJavascript(body[body.length-1])};';
   }
 
+  // Iterate over all the 
   function externArgsToJS(args:Array<String>) : String {
     if(args.length > 1) {
       return '${args[0]}.call()' + ',' + externArgsToJS(args.splice(1, args.length-1));
@@ -37,12 +39,8 @@ class Transpiler {
     return '';
   }
 
-
+  // Create a function from a Splufp Function Expression
   function functionToJS(args:Array<String>, body:Array<LexExpr>, arg_length:Int) {
-    /*if(arg_length == 0) {
-      return 'function() {${functionBodyToJS(body)}}';
-    }*/
-
     if(args.length > 1) {
       return 'function(__spl__${args[0]}) { return ' + functionToJS(args.splice(1, args.length-1), body, arg_length) + '; }';
     }
@@ -52,6 +50,9 @@ class Transpiler {
     return functionBodyToJS(body);
   }
 
+  // Function for creating the args inside an
+  // External JavaScript Function that has
+  // a defined profile
   function fullArgsToJSArgs(args:Array<String>) : String {
     if(args.length > 1) {
       return '${args[0]}, ${fullArgsToJSArgs(args.copy().splice(1, args.length-1))}';
@@ -62,6 +63,10 @@ class Transpiler {
     return '';
   }
 
+
+  // Function for creating the args inside an
+  // External JavaScript Function that has
+  // no defined profile
   function fullArgsToJSSplufpCalls(args:Array<String>) : String {
     if(args.length > 1) {
       return '__spl__${args[0]}.call(), ${fullArgsToJSSplufpCalls(args.copy().splice(1, args.length-1))}';
@@ -72,6 +77,8 @@ class Transpiler {
     return '';
   }
 
+  // Create an Extern Function from
+  // a Splufp ExternJS Expression
   function externToJS(name:String, args:Array<String>, full_args:Array<String>, profile:Null<String>) : String {
     if(args.length > 0) {
       return 'function(__spl__${args[0]}) { return ' + externToJS(name, args.copy().splice(1, args.length-1), full_args, profile) + '; }';
@@ -84,6 +91,8 @@ class Transpiler {
     return 'function(${fullArgsToJSArgs(full_args)}) { return ${profile}; }(${fullArgsToJSSplufpCalls(full_args)})';
   }
 
+  // Create a JavaScript Map from a
+  // Splufp Object Expression
   function objectToJS(map:Map<String, LexExpr>) : String {
     var str = '{ ';
     for(key in map.keys()) {
@@ -93,6 +102,8 @@ class Transpiler {
     return str.substring(0, str.length-1) + ' }';
   }
 
+  // Create a Function Call from a list
+  // of Arguments
   function callsToJS(args:Array<LexExpr>) : String {
     var calls = '';
     for(i in args) {
@@ -101,6 +112,8 @@ class Transpiler {
     return calls;
   }
   
+  // Create a Splufp Data Type from a
+  // Call Argument
   function callArgToJS(expr:LexExpr) : String {
     switch(expr) {
       case LexCall(name, args) if(args.length == 0):
@@ -110,10 +123,14 @@ class Transpiler {
     }
   }
 
+  // Helper function for iterating
+  // over all the Splufp expressions
   function __exprToJavascript(expr : LexExpr, result : String) : String {
     return '$result\n${exprToJavascript(expr)}';
   }
 
+  // Convert a Splufp Expression
+  // to JavaScript code
   function exprToJavascript(expr : LexExpr) : String {
     
     switch(expr) {
@@ -162,7 +179,7 @@ class Transpiler {
       case LexFunction(type, name, args, body):
         switch(type) {
           case ConstantVariable:
-            return 'const __spl__$name = new __splufp__function(${variableBodyToJS(body)});'; 
+            return 'const __spl__$name = new __splufp__function(${exprToJavascript(body[0])});'; 
           case NonConstantVariable:
             return 'var __spl__$name = new __splufp__function_assignable(${exprToJavascript(body[0])});'; 
           case Function:
@@ -184,7 +201,9 @@ class Transpiler {
     return "";
   }
 
-  public function doTranspile() : String {
+  // Function to transpile expressions
+  // and return JavaScript code in a string
+  function doTranspile() : String {
     return exprs.fold(__exprToJavascript, "");  
   }
 
