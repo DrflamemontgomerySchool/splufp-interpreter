@@ -1,12 +1,10 @@
 package;
 
 import parser.Lexer.Lexer;
-import parser.Lexer.LexExpr;
-
 using Lambda;
 
 class Main {
-  static var fileOut = 'out.js';
+  static var fileOut : String = 'out.js';
 
   // Concatenate all the file contents for the Lexer
   static function joinFileString(filename:String, result:String) : String {
@@ -23,7 +21,7 @@ class Main {
 
   // Function for copying a directory
   // Used for initializing projects
-  static function copyDirectory(src:String, dest:String) {
+  static function copyDirectory(src:String, dest:String) : Void {
     if(sys.FileSystem.exists(src)) {
       sys.FileSystem.createDirectory(dest);
       for(file in sys.FileSystem.readDirectory(src)) {
@@ -32,8 +30,7 @@ class Main {
 
         if(sys.FileSystem.isDirectory(path)) {
           copyDirectory(path, dpath);
-        }
-        else {
+        } else {
           sys.io.File.saveContent(dpath, '');
           sys.io.File.copy(path, dpath);
         }
@@ -41,8 +38,8 @@ class Main {
     }
   }
 
-  public static function main() {
-  
+  // Main program
+  public static function main() : Void {
     // Path of program
     // Used for finding the example project
     final cur_path = haxe.io.Path.directory(Sys.programPath());
@@ -56,7 +53,7 @@ class Main {
     switch(Sys.args()[0]) {
       case 'init_project':
         copyDirectory('${cur_path}/spl-extern', 'spl-extern');
-        return; 
+        return;
     }
 
     // creates an array of file paths to iterate over
@@ -64,6 +61,6 @@ class Main {
 
     // concatenate all the files into a single string
     final content = paths.fold(joinFileString, '');
-    sys.io.File.saveContent(fileOut, Transpiler.transpile(parser.Lexer.parse(content)));
+    sys.io.File.saveContent(fileOut, Transpiler.transpile(Lexer.parse(content)));
   }
 }

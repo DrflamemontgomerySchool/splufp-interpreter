@@ -137,7 +137,6 @@ class Lexer {
         case ' '.code, '\t'.code:
           // loop
         case _ if(variableNameStart.contains(lastChar)): // If it is a valid character for a variable
-
           final varName = getVariableName(lastChar); // Get the function name for the extern
           final args = parseFunctionArgs(); // Get the list of arguments
 
@@ -509,7 +508,6 @@ class Lexer {
     throw 'expected function body expression but encountered EOF';
   }
 
-
   // Parse an expression from a name
   // in a function context  
   function parseFunctionVarName(startChar : Int) : LexExpr {
@@ -554,7 +552,6 @@ class Lexer {
     pos--;
 
     while( !StringTools.isEof(lastChar) ) {
-
       var objName : String = parseObjectVarName();
       if (expressions.exists(objName)) throw 'cannot have duplicate names in object';
 
@@ -594,7 +591,6 @@ class Lexer {
         }
 
         break;
-
       }
 
       nonWhitespaceChar = getNextNonWhitespaceChar();
@@ -664,7 +660,6 @@ class Lexer {
     var args :Array<String> = [];
 
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
-
       switch(lastChar) {
         case ' '.code, '\t'.code, '\r'.code, '\n'.code:
           continue;
@@ -744,7 +739,6 @@ class Lexer {
           name += toChar(lastChar);
         default:
           return name;
-
       }
     }
     return name;
@@ -878,7 +872,6 @@ class Lexer {
     }
     throw 'expected one of \'${terminators}\' but got \'${erroredOn}\'';
   }
-
 
   // Helper function for turning character codes into a string
   inline function toChar(code:Int) : String {
