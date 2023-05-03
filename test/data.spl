@@ -1,0 +1,75 @@
+let null_data = null
+
+let bool_data_1 = true
+let bool_data_2 = false
+
+let string_data_1 = "Hello World"
+let string_data_2 = 'dlorW olleH'
+
+let number_data_1 = 1
+let number_data_2 = -1
+let number_data_3 = 0.1
+let number_data_4 = 1.0
+let number_data_5 = 1.
+let number_data_6 = .1
+let number_data_7 = -0.1
+let number_data_8 = -1.0
+let number_data_9 = -1.
+let number_data_10 = -.1
+
+let array_data_0 = []
+let array_data_1 = [1]
+let array_data_2 = [null, true, false, "H", 'H', 1, -1, 0.1, 1.0, 1., .1, -0.1, -1.0, -1., -.1, array_data_0, [1, 2, 3], { a : 1, b : 3}]
+
+let object_data_0 = {}
+let object_data_1 = { a : 2, b : 3, c : { a : 2, b : 3, c : {}}}
+
+let lambda_data_0 = \( \) { add 1 2 }
+let lambda_data_1 = \( x \) { add x 2 }
+let lambda_data_2 = \( x y \) { add x y }
+
+externjs toString x
+externjs log_x x 'console.log(x)'
+
+function_data_0 {
+  
+  log null_data
+
+  log bool_data_1
+  log bool_data_2
+  
+  log number_data_1
+  log number_data_2
+  log number_data_3
+  log number_data_4
+  log number_data_5
+  log number_data_6
+  log number_data_7
+  log number_data_8
+  log number_data_9
+  log number_data_10
+
+  log array_data_0
+  log array_data_1
+  log array_data_2
+
+  log object_data_0
+  log object_data_1
+
+  log lambda_data_0
+  log lambda_data_1
+  log lambda_data_2
+
+  log (toString 'hello')
+  log_x 5
+
+  null
+}
+
+main {
+  function_data_0
+}
+
+
+
+
