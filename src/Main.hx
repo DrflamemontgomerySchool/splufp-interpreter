@@ -9,13 +9,13 @@ class Main {
   // Concatenate all the file contents for the Lexer
   static function joinFileString(filename:String, result:String) : String {
     switch(filename) {
-      case s if(~/^--out=/.match(s)):
-        fileOut = ~/^--out=/.replace(s, '');
+      case _ if(~/^--out=/.match(filename)):
+        fileOut = ~/^--out=/.replace(filename, '');
         return result;
-      case s if(!sys.FileSystem.exists(filename)):
+      case _ if(!sys.FileSystem.exists(filename)):
         throw '\'${filename}\' is not a valid file name';
-      case s:
-        return '${result}${sys.io.File.getContent(s)}\n';
+      case _:
+        return '${result}${sys.io.File.getContent(filename)}\n';
     }
   }
 
@@ -42,7 +42,7 @@ class Main {
   public static function main() : Void {
     // Path of program
     // Used for finding the example project
-    final cur_path = haxe.io.Path.directory(Sys.programPath());
+    final curPath = haxe.io.Path.directory(Sys.programPath());
 
     if(Sys.args().length <= 0) { // Make sure we have enough command line arguments
       Sys.println('usage: splufp-compiler init_project');
@@ -52,12 +52,12 @@ class Main {
 
     switch(Sys.args()[0]) {
       case 'init_project':
-        copyDirectory('${cur_path}/spl-extern', 'spl-extern');
+        copyDirectory('${curPath}/spl-extern', 'spl-extern');
         return;
     }
 
     // creates an array of file paths to iterate over
-    final paths = ['${cur_path}/spl/splufp-base.spl'].concat(Sys.args());
+    final paths = ['${curPath}/spl/splufp-base.spl'].concat(Sys.args());
 
     // concatenate all the files into a single string
     final content = paths.fold(joinFileString, '');

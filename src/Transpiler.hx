@@ -1,6 +1,7 @@
 package;
 
 import parser.Lexer.LexExpr;
+import parser.Lexer.FuncType;
 using Lambda;
 
 class Transpiler {
@@ -43,10 +44,10 @@ class Transpiler {
   }
 
   // Create a function from a Splufp Function Expression
-  function functionToJS(args:Array<String>, body:Array<LexExpr>, arg_length:Int) : String {
+  function functionToJS(args:Array<String>, body:Array<LexExpr>, argLength:Int) : String {
     if(args.length > 1) {
       return 'function(__spl__${args[0]}) { return '
-        + functionToJS(args.splice(1, args.length - 1), body, arg_length)
+        + functionToJS(args.splice(1, args.length - 1), body, argLength)
         + '; }';
     } else if(args.length > 0) {
       return 'function(__spl__${args[0]}) { ${functionBodyToJS(body)}; }';
@@ -82,23 +83,23 @@ class Transpiler {
 
   // Create an Extern Function from
   // a Splufp ExternJS Expression
-  function externToJS(name:String, args:Array<String>, full_args:Array<String>, profile:Null<String>) : String {
+  function externToJS(name:String, args:Array<String>, fullArgs:Array<String>, profile:Null<String>) : String {
     if(args.length > 0) {
       return 'function(__spl__${args[0]}) { return '
-        + externToJS(name, args.copy().splice(1, args.length - 1), full_args, profile)
+        + externToJS(name, args.copy().splice(1, args.length - 1), fullArgs, profile)
         + '; }';
     }
 
     if(profile == null) {
-      return '${name}(${fullArgsToJSSplufpCalls(full_args)})';
+      return '${name}(${fullArgsToJSSplufpCalls(fullArgs)})';
     }
 
-    return 'function(${fullArgsToJSArgs(full_args)}) { return ${profile}; }(${fullArgsToJSSplufpCalls(full_args)})';
+    return 'function(${fullArgsToJSArgs(fullArgs)}) { return ${profile}; }(${fullArgsToJSSplufpCalls(fullArgs)})';
   }
 
   // Create a JavaScript Map from a
   // Splufp Object Expression
-  function objectToJS(map:Map<String, LexExpr>) : String {
+  function objectToString(map:Map<String, LexExpr>) : String {
     var str = '{ ';
     for(key in map.keys()) {
       str += '"$key" : ${exprToJavascript(map[key])},';
@@ -111,8 +112,8 @@ class Transpiler {
   // of Arguments
   function callsToJS(args:Array<LexExpr>) : String {
     var calls = '';
-    for(i in args) {
-      calls += '(${callArgToJS(i)})';
+    for(arg in args) {
+      calls += '(${callArgToJS(arg)})';
     }
     return calls;
   }
@@ -141,80 +142,140 @@ class Transpiler {
       case LexNull:
         return 'null';
 
-      case LexBool(t):
-        return '$t';
+      case LexBool(isTrue):
+        return '$isTrue';
 
-      case LexNumber(n):
-        return '$n';
+      case LexNumber(number):
+        return '$number';
 
-      case LexString(val):
-        return '"$val"';
+      case LexString(stringVal):
+        return '"$stringVal"';
 
-      case LexArray(arr):
-        return '${[for(i in arr) exprToJavascript(i)]}';
+      case LexArray(array):
+        return arrayToString(array);
 
       case LexObject(map):
-        return objectToJS(map);
+        return objectToString(map);
 
       case LexCall(name, args):
-        switch(name) {
-          case 'ret':
-            return 'return ${callsToJS(args)}.call()';
-          case _:
-            return '__spl__$name.call()${callsToJS(args)}';
-        }
+        return callToString(name, args);
 
       case LexAssignment(name, val):
-        return '__spl__$name.set_value(${exprToJavascript(val)})';
+        return assignmentToString(name, val);
 
       case LexExternJS(name, args, profile):
-        if(args.length > 0) {
-          return 'const __spl__'
-            + name
-            + ' = new __splufp__function(function() {'
-            + ' return ${externToJS(name, args, args, profile)};'
-            + '});';
-        }
-        return 'const __spl__$name = new __splufp__function(function() { ${externToJS(name, args, args, profile)};});';
+        return externToString(name, args, profile);
 
       case LexLambda(args, body):
-        if(args.length > 0) {
-          return 'function(){ return ${functionToJS(args, body, args.length)};}';
-        }
-        return 'function(){ ${functionToJS(args, body, args.length)};}';
+        return lambdaToString(args, body);
 
       case LexFunction(type, name, args, body):
-        switch(type) {
-          case ConstantVariable:
-            return 'const __spl__$name = new __splufp__function(${exprToJavascript(body[0])});';
-          case NonConstantVariable:
-            return 'var __spl__$name = new __splufp__function_assignable(${exprToJavascript(body[0])});';
-          case Function:
-            if(args.length > 0) {
-              return 'const __spl__'
-                + name
-                + ' = new __splufp__function(function(){'
-                + ' return ${functionToJS(args, body, args.length)};'
-                + '});';
-            }
-            return 'const __spl__'
-              + name
-              + ' = new __splufp__function(function(){'
-              + ' ${functionToJS(args, body, args.length)};'
-              + '});';
-        }
-      case LexIf(condition, if_body, else_body):
-        return 'if(${exprToJavascript(condition)}) {'
-          + '${if_body.fold(functionExprToJS, '')}}'
-          + 'else {${else_body.fold(functionExprToJS, '')}}';
+        return functionOrVariableToString(type, name, args, body);
+
+      case LexIf(condition, ifBody, elseBody):
+        return ifToString(condition, ifBody, elseBody);
 
       case LexWhile(condition, body):
-        return 'while(${exprToJavascript(condition)}) {${body.fold(functionExprToJS, '')}}';
+        return whileToString(condition, body);
 
-      default:
+      case _:
         return '';
     }
-    return '';
+  }
+
+  // Helper function for turning an array into a JavaScript string
+  inline function arrayToString(array : Array<LexExpr>) : String {
+    return '${[for(elem in array) exprToJavascript(elem)]}';
+  }
+
+  // Helper function for turning a function call into a JavaScript string
+  inline function callToString(name : String, args : Array<LexExpr>) : String {
+    switch(name) {
+      case 'ret':
+        return 'return ${callsToJS(args)}.call()';
+      case _:
+        return '__spl__$name.call()${callsToJS(args)}';
+    }
+  }
+
+  // Helper function for turning a variable assignment into a JavaScript string
+  inline function assignmentToString(name : String, val : LexExpr) : String {
+    return '__spl__$name.set_value(${exprToJavascript(val)})';
+  }
+
+  // Helper function for turning an external JavaScript function into a JavaScript string
+  inline function externToString(name : String, args : Array<String>, profile : String) : String {
+    if(args.length > 0) {
+      return 'const __spl__'
+        + name
+        + ' = new __splufp__function(function() {'
+        + ' return ${externToJS(name, args, args, profile)};'
+        + '});';
+    }
+    return 'const __spl__$name = new __splufp__function(function() { ${externToJS(name, args, args, profile)};});';
+  }
+
+  // Helper function for turning a lambda into a JavaScript string
+  inline function lambdaToString(args : Array<String>, body : Array<LexExpr>) : String {
+    if(args.length > 0) {
+      return 'function(){ return ${functionToJS(args, body, args.length)};}';
+    }
+    return 'function(){ ${functionToJS(args, body, args.length)};}';
+  }
+
+  // Helper function for turning a if statement into a JavaScript string
+  inline function ifToString(condition : LexExpr, ifBody : Array<LexExpr>, elseBody : Array<LexExpr>) : String {
+    return 'if(${exprToJavascript(condition)}) {'
+      + '${ifBody.fold(functionExprToJS, '')}}'
+      + 'else {${elseBody.fold(functionExprToJS, '')}}';
+  }
+
+  // Helper function for turning a while statement into a JavaScript string
+  inline function whileToString(condition : LexExpr, body : Array<LexExpr>) : String {
+    return 'while(${exprToJavascript(condition)}) {${body.fold(functionExprToJS, '')}}';
+  }
+
+  // Helper function for turning a function or variable into a JavaScript string
+  inline function functionOrVariableToString(
+      type : FuncType,
+      name : String,
+      args : Array<String>,
+      body : Array<LexExpr>
+  ) : String  {
+    switch(type) {
+      case ConstantVariable:
+        return constantVariableToString(name, body);
+      case NonConstantVariable:
+        return nonConstantVariableToString(name, body);
+      case Function:
+        return functionToString(name, args, body);
+    }
+  }
+
+  // Helper function for turning a constant variable into a JavaScript string
+  inline function constantVariableToString(name : String, body : Array<LexExpr>) : String {
+    return 'const __spl__$name = new __splufp__function(${exprToJavascript(body[0])});';
+  }
+
+  // Helper function for turning a non-constant variable into a JavaScript string
+  inline function nonConstantVariableToString(name : String, body : Array<LexExpr>) : String {
+    return 'var __spl__$name = new __splufp__function_assignable(${exprToJavascript(body[0])});';
+  }
+
+  // Helper function for turning a function variable into a JavaScript string
+  inline function functionToString(name : String, args : Array<String>, body : Array<LexExpr>) : String {
+    if(args.length > 0) {
+      return 'const __spl__'
+        + name
+        + ' = new __splufp__function(function(){'
+        + ' return ${functionToJS(args, body, args.length)};'
+        + '});';
+    }
+    return 'const __spl__'
+      + name
+      + ' = new __splufp__function(function(){'
+      + ' ${functionToJS(args, body, args.length)};'
+      + '});';
   }
 
   // Function to transpile expressions
@@ -222,5 +283,4 @@ class Transpiler {
   function doTranspile() : String {
     return exprs.fold(__exprToJavascript, '');
   }
-
 }
