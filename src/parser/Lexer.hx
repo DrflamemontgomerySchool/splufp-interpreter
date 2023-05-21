@@ -104,7 +104,7 @@ class Lexer {
         case '/'.code:
           stripComment();
         case _ if( variableNameStart.contains(char) ):
-
+          // Parse tokens that have alphanumeric characters
           switch(getVariableName(char)) {
             case 'let':
               return parseVariableCreation(ConstantVariable);
@@ -119,6 +119,7 @@ class Lexer {
               return LexFunction(Function, name, parseFunctionArgs(), parseFunctionBody());
           }
         case _:
+          // Failed to parse a valid token
           throw 'invalid top level expression \'${ toChar(char) }\' at pos: $pos';
       }
     }
@@ -168,15 +169,14 @@ class Lexer {
     switch(lastChar) { // Make sure that we don't hit a new line or invalid character
       case ' '.code, '\t'.code:
       case str if( type == ConstantVariable ):
-        'expected whitespace after \'let\', received \'$str\' instead';
+        throw 'expected whitespace after \'let\', received \'$str\' instead';
       case str if( type == NonConstantVariable ):
-        'expected whitespace after \'set\', received \'$str\' instead';
+        throw 'expected whitespace after \'set\', received \'$str\' instead';
       case str:
-        'variable type invalid';
+        throw 'variable type invalid';
     }
 
     // Hijack the assignment function because the function is the same
-
     switch(parseVariableAssignment() ) {
       case LexAssignment(name, val):
         return LexFunction(type, name, [], [val]);
@@ -186,6 +186,8 @@ class Lexer {
   }
 
   // Function for creating an expression of setting a variable with a value
+  //   var_name = value
+  //   returns the AST of this expr
   function parseVariableAssignment() : LexExpr {
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
@@ -205,6 +207,10 @@ class Lexer {
   }
 
   // Returns the value of the variable creation if there is an '='
+  //   var_name = value
+  //            ^
+  //            |
+  //   checks this token then returns the parsed 'value'
   function parseVariableCreationBody() : LexExpr {
     do {
       switch(lastChar) {
@@ -224,6 +230,10 @@ class Lexer {
   }
 
   // Parse the value of the variable
+  //   var_name = value
+  //                ^
+  //                |
+  //   parses then returns this token
   function parseVariableAssignmentExpr() : LexExpr {
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
@@ -255,10 +265,14 @@ class Lexer {
     throw 'expected variable expression but reached EOF';
   }
 
-  // Function that returns the correct
+  // Function that returns the correct arguments
+  //   called_function_name arg1 arg2
+  //                         ^    ^
+  //                         |    |
+  //   parses the argument tokens of valid types
   function parseCallArgs() : Array<LexExpr> {
     var args : Array<LexExpr> = [];
-
+    
     do {
       switch(lastChar) {
         case '='.code:
@@ -309,6 +323,7 @@ class Lexer {
   }
 
   // Parse expressions that are contained within brackets
+  // (expr1 expr2 ...)
   function parseBracket() : LexExpr {
     var expr : LexExpr = LexNull;
 
@@ -364,6 +379,7 @@ class Lexer {
   }
 
   // Parse an array of expressions between square brackets
+  // [expr1, expr2, ...]
   function parseArray() : Array<LexExpr> {
     var expressions : Array<LexExpr> = [];
 
@@ -435,7 +451,11 @@ class Lexer {
     throw 'invalid array expression';
   }
 
-  // Parse the names of the arguments for a function
+  // Parse the names of the arguments for a function declaration
+  //   func_name arg1 arg2 {
+  //              ^    ^
+  //              |    |
+  //   parses these values
   function parseFunctionArgs() : Array<String> {
     var args : Array<String> = [];
 
@@ -458,6 +478,11 @@ class Lexer {
   }
 
   // Parse the expressions for a function to execute
+  //   func_name arg1 arg2 {
+  //      func_expr
+  //         ^
+  //         |
+  //      parse this expression
   function parseFunctionBody() : Array<LexExpr> {
     var body : Array<LexExpr> = [];
 
@@ -509,7 +534,7 @@ class Lexer {
   }
 
   // Parse an expression from a name
-  // in a function context  
+  // in a function context
   function parseFunctionVarName(startChar : Int) : LexExpr {
     switch(getVariableName(startChar)) {
       case 'if':
@@ -544,6 +569,7 @@ class Lexer {
   }
 
   // Parse an associative list of elements
+  //   { a : 1, b : 2, ...}
   function parseObject() : Map<String, LexExpr> {
     var expressions : Map<String, LexExpr> = [];
 
@@ -552,12 +578,13 @@ class Lexer {
     pos--;
 
     while( !StringTools.isEof(lastChar) ) {
-      var objName : String = parseObjectVarName();
+      var objName : String = parseObjectVarName(); // parse key
       if (expressions.exists(objName)) throw 'cannot have duplicate names in object';
 
       var nonWhitespaceChar : Int = getNextNonWhitespaceChar();
-      if( nonWhitespaceChar != ':'.code) errorTerminators([':'.code], toChar(nonWhitespaceChar));
+      if( nonWhitespaceChar != ':'.code) errorTerminators([':'.code], toChar(nonWhitespaceChar)); // parse ':'
 
+      // parse object value
       while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
         switch(lastChar) {
           case '/'.code:
@@ -593,6 +620,7 @@ class Lexer {
         break;
       }
 
+      // parse ',' or '}'
       nonWhitespaceChar = getNextNonWhitespaceChar();
       if(nonWhitespaceChar == '}'.code) return expressions;
       if(nonWhitespaceChar != ','.code) pos--;
@@ -602,6 +630,10 @@ class Lexer {
   }
 
   // Parse the key for an object
+  //   a : 1
+  //   ^
+  //   |
+  //   parse this key
   function parseObjectVarName() : String {
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
       switch(lastChar) {
@@ -620,6 +652,12 @@ class Lexer {
   }
 
   // Parse an if-else control statement 
+  //   if condition {
+  //     expr
+  //   } {
+  //     expr
+  //   }
+
   function parseIfStatement() : LexExpr {
     var condition = parseVariableAssignmentExpr();
     lastChar = nextChar();
@@ -656,11 +694,14 @@ class Lexer {
   // Parse the names of the lambda's arguments
   // This differs from parseFunctionArgs because
   // Lambda arguments are ended with \)
+  //   \(arg1 arg2 ...\) {
+  //     expr
+  //   }
   function parseLambdaArgs() : Array<String> {
     var args :Array<String> = [];
 
     while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
-      switch(lastChar) {
+      switch(lastChar) { // parse argument name
         case ' '.code, '\t'.code, '\r'.code, '\n'.code:
           continue;
         case _ if(variableNameStart.contains(lastChar)):
@@ -671,7 +712,7 @@ class Lexer {
           throw 'expected \'\\)\' to end lambda arguments but got \'${toChar(lastChar)}\' instead';
       }
 
-      switch(lastChar) {
+      switch(lastChar) { // parse space between arguments
         case ' '.code, '\t'.code, '\r'.code, '\n'.code:
         case '\\'.code:
           break;
@@ -679,7 +720,8 @@ class Lexer {
           throw 'expected \'\\)\' to end lambda arguments but got \'${toChar(lastChar)}\' instead';
       }
     }
-    while( !StringTools.isEof( (lastChar = nextChar()) ) ) {
+
+    while( !StringTools.isEof( (lastChar = nextChar()) ) ) { // parse ')' to end lambda arguments
       switch( lastChar ) {
         case ')'.code:
           return args;
@@ -696,6 +738,7 @@ class Lexer {
   function parseNumberValue(startChar:Int):Float {
     var numString = toChar(startChar);
 
+    // Array of valid number characters
     final numberValues : Array<Int> = [
       for(char in '0'.code...('9'.code + 1)) char
     ].concat([
@@ -708,7 +751,7 @@ class Lexer {
           stripComment();
         case _ if ( numberValues.contains(lastChar) ):
           numString += toChar(lastChar);
-        default:
+        case _:
           switch(Std.parseFloat(numString)) {
             case num if ( Math.isNaN(num) ):
               throw 'Expected Number instead got \'$numString\'';
@@ -723,6 +766,7 @@ class Lexer {
 
   // Return the name of a variable
   function getVariableName(startChar:Int):String {
+    // Array of valid variable name characters
     final variableNameMatch : Array<Int> = [
       for(char in 'a'.code...('z'.code + 1)) char
     ].concat([
@@ -748,13 +792,13 @@ class Lexer {
   // with escaping characters transformed
   function parseString() : String {
     var string = '';
-    final stringId = lastChar;
+    final stringId = lastChar; // the character used to start the string: ' or "
 
     while( !StringTools.isEof( (lastChar = nextChar()) )) {
       switch(lastChar) {
         case '\\'.code:
-          string += toChar(parseEscape());
-        case _ if(lastChar == stringId):
+          string += toChar(parseEscape()); // escape codes
+        case _ if(lastChar == stringId): // did we get the terminating ' or "
           return string;
         case _:
           string += toChar(lastChar);
